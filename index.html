@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Emoji Cipher Live — Text ↔ Emoji (বাংলা + English)</title>
+  <!-- Firebase compat SDKs (required) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071024 0%, #0b1220 100%);color:#e6eef8;padding:18px}
+    .app{max-width:760px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+    header .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#60a5fa,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .card{background:rgba(255,255,255,0.03);padding:14px;border-radius:12px;margin-bottom:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    textarea{width:100%;min-height:96px;background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;color:inherit;resize:vertical}
+    .btn{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;color:#fff;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .out{background:rgba(0,0,0,0.25);padding:10px;border-radius:8px;min-height:56px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+    footer{color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">😊</div>
+    <div>
+      <h1>Emoji Cipher Live</h1>
+      <p class="lead">বাংলা + English লেখাও Encode → Emoji এবং Decode → Text। Firebase + HTTPS compatible।</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <label>টেক্সট লিখো (Encode):</label>
+    <textarea id="inputText" placeholder="I love my story বা আমি ভালো গল্প"></textarea>
+    <div class="actions">
+      <button class="btn" id="encodeBtn">Encode → Emoji + Share</button>
+      <button class="btn ghost" id="clearInput">Clear</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <label>Encoded Emoji (কপি বা শেয়ার করা যাবে):</label>
+    <div id="emojiOut" class="out" aria-live="polite">—</div>
+    <div class="actions">
+      <button class="btn" id="copyEmoji">Copy Emoji</button>
+      <button class="btn" id="shareEmoji">Share Emoji</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <label>Emoji পেস্ট করে Decode করো:</label>
+    <textarea id="inputEmoji" placeholder="😊 ❤️ 📖 ✨ (space দিয়ে আলাদা করা)"></textarea>
+    <div class="actions">
+      <button class="btn" id="decodeBtn">Decode → Text</button>
+      <button class="btn ghost" id="clearEmoji">Clear</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <label>Decoded Text:</label>
+    <div id="textOut" class="out">—</div>
+    <div class="actions">
+      <button class="btn" id="copyText">Copy Text</button>
+    </div>
+  </section>
+
+  <footer>Firebase লাইভ শেয়ার/ডিকোড সক্রিয়। GitHub Pages-ready।</footer>
+</div>
+
+<script>
+  // Firebase config + init
+  const firebaseConfig = {
+    apiKey: "AIzaSyDkqjA1Io411uidSZBLbYJlYHWGVY36zc8",
+    authDomain: "shuvo-all-tools.firebaseapp.com",
+    databaseURL: "https://shuvo-all-tools-default-rtdb.firebaseio.com",
+    projectId: "shuvo-all-tools",
+    storageBucket: "shuvo-all-tools.appspot.com",
+    messagingSenderId: "475600173705",
+    appId: "1:475600173705:android:0251b1d46457dc4e806458"
+  };
+  if(typeof firebase === 'undefined'){
+    console.error('Firebase SDK missing. Make sure script tags for Firebase are included.');
+  } else {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.database();
+
+  // mappings
+  const engLetters = 'abcdefghijklmnopqrstuvwxyz';
+  const engEmoji = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😇','🙂','🙃','😋','😌','😍','😘','😗','😙','😚','😜','😝','😛','🤪','🤨','🧐'];
+  const bnLetters = ['অ','আ','ই','উ','ক','খ','গ','ঘ','চ','ছ','জ','ঝ','ট','ঠ','ড','ঢ','ত','থ','দ','ধ','ন','প','ফ','ব','ভ','ম','য','র','ল','শ','স','হ'];
+  const bnEmoji = ['🌕','🌖','🌗','🌘','🔥','💧','🌿','⚡','🌈','🌙','☀️','🌻','🪐','🌸','🌼','🌺','🧡','💚','💙','💜','🤍','🤎','💛','❤️','💫','✨','🌟','🌠','🌤️','☁️','🌊','⚙️'];
+  const mapping = {};
+  engLetters.split('').forEach((ch,i)=>mapping[ch]=engEmoji[i]);
+  bnLetters.forEach((ch,i)=>mapping[ch]=bnEmoji[i]);
+  for(let d=0; d<=9; d++) mapping[''+d] = d+'\u20E3';
+  mapping[' ']='⬜'; mapping['.']='🔸'; mapping[',']='🔹'; mapping['?']='❓'; mapping['!']='❗';
+  mapping['\'']='🟣'; mapping['"']='🔶'; mapping[':']='🔺'; mapping[';']='🔻';
+  const rev = {};
+  Object.keys(mapping).forEach(k=>rev[mapping[k]]=k);
+
+  const $ = id=>document.getElementById(id);
+
+  function encodeText(txt){
+    return txt.split('').map(ch=>mapping[ch.toLowerCase()]||ch).join(' ');
+  }
+  function decodeEmoji(em){
+    return em.trim().split(/\s+/).map(p=>rev[p]||p).join('');
+  }
+
+  // fallback copy (execCommand) for older browsers / file:// testing
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); document.body.removeChild(ta); return true;}catch(e){document.body.removeChild(ta);return false;}
+  }
+
+  async function copyToClipboard(text){
+    if(!text) return false;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      try{ await navigator.clipboard.writeText(text); return true;}catch(e){ /* fallthrough to fallback */ }
+    }
+    return fallbackCopy(text);
+  }
+
+  function makeShareUrl(emoji){
+    try{
+      const base = location.origin + location.pathname;
+      const q = '?emoji=' + encodeURIComponent(emoji);
+      return base + q;
+    }catch(e){ return null; }
+  }
+
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const params = new URLSearchParams(location.search);
+    if(params.has('emoji')){
+      const em = params.get('emoji');
+      $('inputEmoji').value = em;
+      $('textOut').textContent = decodeEmoji(em) || '—';
+    }
+    $('emojiOut').textContent = '—';
+    $('textOut').textContent = '—';
+  });
+
+  $('encodeBtn').addEventListener('click', async ()=>{
+    const txt = $('inputText').value.trim();
+    if(!txt) return alert('কোনো টেক্সট নেই');
+    const em = encodeText(txt);
+    $('emojiOut').textContent = em;
+    try{
+      const key = db.ref('emojiMessages').push().key;
+      db.ref('emojiMessages/'+key).set({text:txt,emoji:em,timestamp:Date.now()});
+    }catch(e){ console.warn('Firebase push failed (check console / DB rules):', e); }
+  });
+
+  $('decodeBtn').addEventListener('click',()=>{
+    const em = $('inputEmoji').value.trim();
+    $('textOut').textContent = decodeEmoji(em) || '—';
+  });
+
+  $('clearInput').addEventListener('click',()=>{$('inputText').value='';$('emojiOut').textContent='—';});
+  $('clearEmoji').addEventListener('click',()=>{$('inputEmoji').value='';$('textOut').textContent='—';});
+
+  $('copyEmoji').addEventListener('click', async ()=>{
+    const t = $('emojiOut').textContent;
+    if(!t || t==='—') return alert('কোনো encoded emoji নেই');
+    const ok = await copyToClipboard(t);
+    alert(ok? 'Emoji কপি হয়েছে' : 'কপি করতে ব্যর্থ — ব্রাউজার সীমাবদ্ধতা');
+  });
+  $('copyText').addEventListener('click', async ()=>{
+    const t = $('textOut').textContent;
+    if(!t || t==='—') return alert('কোনো decoded text নেই');
+    const ok = await copyToClipboard(t);
+    alert(ok? 'Text কপি হয়েছে' : 'কপি করতে ব্যর্থ — ব্রাউজার সীমাবদ্ধতা');
+  });
+
+  $('shareEmoji').addEventListener('click', async ()=>{
+    const em = $('emojiOut').textContent;
+    if(!em || em==='—') return alert('কোনো encoded emoji নেই');
+    const shareUrl = makeShareUrl(em);
+    const payload = {text: em, url: shareUrl};
+    if(navigator.share){
+      try{ await navigator.share(payload); }
+      catch(err){ alert('Share করতে ব্যর্থ: '+ err); }
+    } else {
+      const ok = await copyToClipboard(shareUrl || em);
+      alert(ok? 'শেয়ার লিংকের কপি হয়েছে — পেস্ট করে পাঠাও' : 'Share নেই ও কপি ব্যর্থ');
+    }
+  });
+</script>
+</body>
+</html>
