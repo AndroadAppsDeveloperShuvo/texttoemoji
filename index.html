@@ -1,84 +1,231 @@
-<!doctype html>
-<html lang="bn">
+<!DOCTYPE html>
+<html lang="bn" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Emoji Cipher Live — Text ↔ Emoji (বাংলা + English)</title>
-  <!-- Firebase compat SDKs (required) -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emoji Cipher Pro - By Shuvo</title>
+  
+  <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Toastify -->
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa}
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
-    body{background:linear-gradient(180deg,#071024 0%, #0b1220 100%);color:#e6eef8;padding:18px}
-    .app{max-width:760px;margin:0 auto}
-    header{display:flex;gap:12px;align-items:center;margin-bottom:14px}
-    header .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#60a5fa,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700}
-    h1{font-size:18px;margin:0}
-    p.lead{margin:6px 0 0;color:var(--muted);font-size:13px}
-    .card{background:rgba(255,255,255,0.03);padding:14px;border-radius:12px;margin-bottom:12px}
-    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-    textarea{width:100%;min-height:96px;background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;color:inherit;resize:vertical}
-    .btn{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;color:#fff;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer}
-    .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-    .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-    .out{background:rgba(0,0,0,0.25);padding:10px;border-radius:8px;min-height:56px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-    footer{color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+    /* Professional Theme Variables */
+    :root {
+      --bg-color: #e2e8f0;
+      --card-bg: #ffffff;
+      --text-main: #000000;
+      --text-muted: #475569;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --border-color: #cbd5e1;
+      --input-bg: #f8fafc;
+      --success: #10b981;
+      --danger: #ef4444;
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg-color: #020617;
+      --card-bg: #0f172a;
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --border-color: #334155;
+      --input-bg: #1e293b;
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+    }
+
+    * {
+      box-sizing: border-box; margin: 0; padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      transition: background-color 0.3s, color 0.3s, border-color 0.2s;
+    }
+
+    body {
+      background: var(--bg-color); color: var(--text-main);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+
+    .generator-card {
+      background: var(--card-bg); width: 100%; max-width: 550px;
+      padding: 30px; border-radius: 20px; box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    /* Header & Settings */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .header .logo-title { display: flex; align-items: center; gap: 12px; }
+    .header .logo { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .header h1 { font-size: 20px; font-weight: 800; color: var(--text-main); margin: 0;}
+    .header p { font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0; font-weight: 500; }
+
+    .settings-btn { background: transparent; border: none; color: var(--text-main); cursor: pointer; padding: 8px; border-radius: 50%; }
+    .settings-btn:hover { background: var(--border-color); }
+    .settings-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+    .settings-dropdown {
+      position: absolute; top: 70px; right: 30px; background: var(--card-bg);
+      border: 2px solid var(--border-color); box-shadow: var(--shadow-lg);
+      border-radius: 12px; padding: 15px; width: 180px; display: none; z-index: 10;
+    }
+    .settings-dropdown.active { display: block; animation: popIn 0.2s ease-out; }
+    .setting-item { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; }
+
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); border-radius: 34px; transition: .4s; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Input Groups */
+    .input-group { margin-bottom: 20px; text-align: left; }
+    .input-group label { display: block; font-size: 14px; color: var(--text-main); margin-bottom: 8px; font-weight: 700; }
+    
+    textarea {
+      width: 100%; padding: 14px; border: 2px solid var(--border-color);
+      background: var(--input-bg); color: var(--text-main); border-radius: 10px;
+      font-size: 15px; outline: none; font-weight: 500; min-height: 90px; resize: vertical;
+    }
+    textarea:focus { border-color: var(--primary); }
+
+    .out-box {
+      width: 100%; padding: 14px; background: var(--input-bg); border: 1px dashed var(--text-muted);
+      border-radius: 10px; color: var(--text-main); font-size: 16px; min-height: 60px;
+      word-wrap: break-word; font-weight: 500; text-align: center; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Buttons */
+    .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 14px;
+      font-weight: 800; cursor: pointer; transition: 0.2s; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #059669; }
+    .btn-danger { background: transparent; border: 2px solid var(--border-color); color: var(--text-main); }
+    .btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+    hr.divider { border: 0; border-top: 2px dashed var(--border-color); margin: 25px 0; }
+
+    /* Result Section */
+    .result-section { display: none; margin-top: 10px; animation: fadeIn 0.4s ease; }
+
+    /* Footer */
+    .footer { margin-top: 25px; text-align: center; font-size: 14px; color: var(--text-muted); font-weight: 600; }
+    .footer span { color: var(--primary); font-weight: 800; }
+
+    @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="logo">😊</div>
-    <div>
-      <h1>Emoji Cipher Live</h1>
-      <p class="lead">বাংলা + English লেখাও Encode → Emoji এবং Decode → Text। Firebase + HTTPS compatible।</p>
-    </div>
-  </header>
 
-  <section class="card">
-    <label>টেক্সট লিখো (Encode):</label>
-    <textarea id="inputText" placeholder="I love my story বা আমি ভালো গল্প"></textarea>
-    <div class="actions">
-      <button class="btn" id="encodeBtn">Encode → Emoji + Share</button>
-      <button class="btn ghost" id="clearInput">Clear</button>
-    </div>
-  </section>
+  <div class="generator-card">
+    
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-title">
+        <div class="logo">😊</div>
+        <div>
+          <h1>Emoji Cipher Pro</h1>
+          <p>Text ↔ Emoji Converter</p>
+        </div>
+      </div>
+      <button class="settings-btn" id="settingsBtn" onclick="toggleSettings()" title="Settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+      </button>
 
-  <section class="card">
-    <label>Encoded Emoji (কপি বা শেয়ার করা যাবে):</label>
-    <div id="emojiOut" class="out" aria-live="polite">—</div>
-    <div class="actions">
-      <button class="btn" id="copyEmoji">Copy Emoji</button>
-      <button class="btn" id="shareEmoji">Share Emoji</button>
+      <div class="settings-dropdown" id="settingsMenu">
+        <div class="setting-item">
+          <span>Dark Mode</span>
+          <label class="switch"><input type="checkbox" id="themeToggle" onchange="toggleTheme()"><span class="slider"></span></label>
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="card">
-    <label>Emoji পেস্ট করে Decode করো:</label>
-    <textarea id="inputEmoji" placeholder="😊 ❤️ 📖 ✨ (space দিয়ে আলাদা করা)"></textarea>
-    <div class="actions">
-      <button class="btn" id="decodeBtn">Decode → Text</button>
-      <button class="btn ghost" id="clearEmoji">Clear</button>
+    <!-- Section 1: Encode (Text to Emoji) -->
+    <div class="input-group">
+      <label>1. Text to Emoji (Encode)</label>
+      <textarea id="inputText" placeholder="e.g. I love my story বা আমি ভালো গল্প"></textarea>
+      <div class="btn-group">
+        <button id="encodeBtn" class="btn btn-primary">🪄 Encode to Emoji</button>
+        <button id="clearInput" class="btn btn-danger">🗑️ Clear</button>
+      </div>
     </div>
-  </section>
 
-  <section class="card">
-    <label>Decoded Text:</label>
-    <div id="textOut" class="out">—</div>
-    <div class="actions">
-      <button class="btn" id="copyText">Copy Text</button>
+    <div class="result-section" id="emojiResultSection">
+      <div class="out-box" id="emojiOut">—</div>
+      <div class="btn-group">
+        <button id="copyEmoji" class="btn btn-success">📋 Copy Emoji</button>
+        <button id="shareEmoji" class="btn btn-primary">📤 Share Link</button>
+      </div>
     </div>
-  </section>
 
-  <footer>THIS SITE DEVELOP BY SHUVO🌸</footer>
-</div>
-    <footer>Firebase লাইভ শেয়ার/ডিকোড সক্রিয়। GitHub Pages-ready🌸</footer>
-</div>
+    <hr class="divider">
+
+    <!-- Section 2: Decode (Emoji to Text) -->
+    <div class="input-group">
+      <label>2. Emoji to Text (Decode)</label>
+      <textarea id="inputEmoji" placeholder="e.g. 😊 ❤️ 📖 ✨ (space দিয়ে আলাদা করা)"></textarea>
+      <div class="btn-group">
+        <button id="decodeBtn" class="btn btn-primary">🔍 Decode to Text</button>
+        <button id="clearEmoji" class="btn btn-danger">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <div class="result-section" id="textResultSection">
+      <div class="out-box" id="textOut">—</div>
+      <button id="copyText" class="btn btn-success" style="margin-top: 10px;">📋 Copy Text</button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">Developed by <span>Developer Shuvo</span></div>
+  </div>
 
 <script>
-  // Firebase config + init
+  // Theme Setup
+  document.addEventListener("DOMContentLoaded", () => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    if (savedTheme === 'dark') document.getElementById('themeToggle').checked = true;
+  });
+
+  function toggleSettings() { document.getElementById('settingsMenu').classList.toggle('active'); }
+  
+  document.addEventListener('click', function(event) {
+    const menu = document.getElementById('settingsMenu');
+    const btn = document.getElementById('settingsBtn');
+    if (!menu.contains(event.target) && !btn.contains(event.target)) {
+      menu.classList.remove('active');
+    }
+  });
+
+  function toggleTheme() {
+    const isDark = document.getElementById('themeToggle').checked;
+    const newTheme = isDark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  }
+
+  function showToast(message, color) {
+    Toastify({ text: message, duration: 3000, gravity: "top", position: "center", style: { background: color, borderRadius: "8px", fontWeight: "bold" } }).showToast();
+  }
+
+  // Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyDkqjA1Io411uidSZBLbYJlYHWGVY36zc8",
     authDomain: "shuvo-all-tools.firebaseapp.com",
@@ -88,117 +235,41 @@
     messagingSenderId: "475600173705",
     appId: "1:475600173705:android:0251b1d46457dc4e806458"
   };
-  if(typeof firebase === 'undefined'){
-    console.error('Firebase SDK missing. Make sure script tags for Firebase are included.');
-  } else {
-    firebase.initializeApp(firebaseConfig);
+  
+  if(typeof firebase !== 'undefined'){
+    try { firebase.initializeApp(firebaseConfig); } catch(e) {}
   }
-  const db = firebase.database();
+  const db = typeof firebase !== 'undefined' ? firebase.database() : null;
 
-  // mappings
+  // Cipher Mappings
   const engLetters = 'abcdefghijklmnopqrstuvwxyz';
   const engEmoji = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😇','🙂','🙃','😋','😌','😍','😘','😗','😙','😚','😜','😝','😛','🤪','🤨','🧐'];
   const bnLetters = ['অ','আ','ই','উ','ক','খ','গ','ঘ','চ','ছ','জ','ঝ','ট','ঠ','ড','ঢ','ত','থ','দ','ধ','ন','প','ফ','ব','ভ','ম','য','র','ল','শ','স','হ'];
   const bnEmoji = ['🌕','🌖','🌗','🌘','🔥','💧','🌿','⚡','🌈','🌙','☀️','🌻','🪐','🌸','🌼','🌺','🧡','💚','💙','💜','🤍','🤎','💛','❤️','💫','✨','🌟','🌠','🌤️','☁️','🌊','⚙️'];
+  
   const mapping = {};
   engLetters.split('').forEach((ch,i)=>mapping[ch]=engEmoji[i]);
   bnLetters.forEach((ch,i)=>mapping[ch]=bnEmoji[i]);
   for(let d=0; d<=9; d++) mapping[''+d] = d+'\u20E3';
   mapping[' ']='⬜'; mapping['.']='🔸'; mapping[',']='🔹'; mapping['?']='❓'; mapping['!']='❗';
   mapping['\'']='🟣'; mapping['"']='🔶'; mapping[':']='🔺'; mapping[';']='🔻';
+  
   const rev = {};
   Object.keys(mapping).forEach(k=>rev[mapping[k]]=k);
 
-  const $ = id=>document.getElementById(id);
+  const $ = id => document.getElementById(id);
 
-  function encodeText(txt){
+  function encodeText(txt) {
     return txt.split('').map(ch=>mapping[ch.toLowerCase()]||ch).join(' ');
   }
-  function decodeEmoji(em){
+  
+  function decodeEmoji(em) {
     return em.trim().split(/\s+/).map(p=>rev[p]||p).join('');
   }
 
-  // fallback copy (execCommand) for older browsers / file:// testing
-  function fallbackCopy(text){
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    try{ document.execCommand('copy'); document.body.removeChild(ta); return true;}catch(e){document.body.removeChild(ta);return false;}
-  }
-
-  async function copyToClipboard(text){
-    if(!text) return false;
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      try{ await navigator.clipboard.writeText(text); return true;}catch(e){ /* fallthrough to fallback */ }
-    }
-    return fallbackCopy(text);
-  }
-
-  function makeShareUrl(emoji){
-    try{
-      const base = location.origin + location.pathname;
-      const q = '?emoji=' + encodeURIComponent(emoji);
-      return base + q;
-    }catch(e){ return null; }
-  }
-
-  window.addEventListener('DOMContentLoaded', ()=>{
+  // Auto Decode if URL has parameter
+  window.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(location.search);
     if(params.has('emoji')){
       const em = params.get('emoji');
-      $('inputEmoji').value = em;
-      $('textOut').textContent = decodeEmoji(em) || '—';
-    }
-    $('emojiOut').textContent = '—';
-    $('textOut').textContent = '—';
-  });
-
-  $('encodeBtn').addEventListener('click', async ()=>{
-    const txt = $('inputText').value.trim();
-    if(!txt) return alert('কোনো টেক্সট নেই');
-    const em = encodeText(txt);
-    $('emojiOut').textContent = em;
-    try{
-      const key = db.ref('emojiMessages').push().key;
-      db.ref('emojiMessages/'+key).set({text:txt,emoji:em,timestamp:Date.now()});
-    }catch(e){ console.warn('Firebase push failed (check console / DB rules):', e); }
-  });
-
-  $('decodeBtn').addEventListener('click',()=>{
-    const em = $('inputEmoji').value.trim();
-    $('textOut').textContent = decodeEmoji(em) || '—';
-  });
-
-  $('clearInput').addEventListener('click',()=>{$('inputText').value='';$('emojiOut').textContent='—';});
-  $('clearEmoji').addEventListener('click',()=>{$('inputEmoji').value='';$('textOut').textContent='—';});
-
-  $('copyEmoji').addEventListener('click', async ()=>{
-    const t = $('emojiOut').textContent;
-    if(!t || t==='—') return alert('কোনো encoded emoji নেই');
-    const ok = await copyToClipboard(t);
-    alert(ok? 'Emoji কপি হয়েছে' : 'কপি করতে ব্যর্থ — ব্রাউজার সীমাবদ্ধতা');
-  });
-  $('copyText').addEventListener('click', async ()=>{
-    const t = $('textOut').textContent;
-    if(!t || t==='—') return alert('কোনো decoded text নেই');
-    const ok = await copyToClipboard(t);
-    alert(ok? 'Text কপি হয়েছে' : 'কপি করতে ব্যর্থ — ব্রাউজার সীমাবদ্ধতা');
-  });
-
-  $('shareEmoji').addEventListener('click', async ()=>{
-    const em = $('emojiOut').textContent;
-    if(!em || em==='—') return alert('কোনো encoded emoji নেই');
-    const shareUrl = makeShareUrl(em);
-    const payload = {text: em, url: shareUrl};
-    if(navigator.share){
-      try{ await navigator.share(payload); }
-      catch(err){ alert('Share করতে ব্যর্থ: '+ err); }
-    } else {
-      const ok = await copyToClipboard(shareUrl || em);
-      alert(ok? 'শেয়ার লিংকের কপি হয়েছে — পেস্ট করে পাঠাও' : 'Share নেই ও কপি ব্যর্থ');
-    }
-  });
-</script>
-</body>
-</html>
+      $('inputEmoji
