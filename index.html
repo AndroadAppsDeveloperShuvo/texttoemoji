@@ -272,4 +272,85 @@
     const params = new URLSearchParams(location.search);
     if(params.has('emoji')){
       const em = params.get('emoji');
-      $('inputEmoji
+      $('inputEmoji').value = em;
+      const decoded = decodeEmoji(em);
+      $('textOut').textContent = decoded || '—';
+      if(decoded) $('textResultSection').style.display = 'block';
+    }
+  });
+
+  // Action: Encode
+  $('encodeBtn').addEventListener('click', () => {
+    const txt = $('inputText').value.trim();
+    if(!txt) return showToast('Please enter some text to encode!', '#ef4444');
+    
+    const em = encodeText(txt);
+    $('emojiOut').textContent = em;
+    $('emojiResultSection').style.display = 'block';
+    showToast('Encoded successfully!', '#10b981');
+    
+    if(db) {
+      try {
+        const key = db.ref('emojiMessages').push().key;
+        db.ref('emojiMessages/'+key).set({text:txt, emoji:em, timestamp:Date.now()});
+      } catch(e) {}
+    }
+  });
+
+  // Action: Decode
+  $('decodeBtn').addEventListener('click', () => {
+    const em = $('inputEmoji').value.trim();
+    if(!em) return showToast('Please paste emoji to decode!', '#ef4444');
+
+    const decoded = decodeEmoji(em);
+    $('textOut').textContent = decoded || '—';
+    $('textResultSection').style.display = 'block';
+    showToast('Decoded successfully!', '#10b981');
+  });
+
+  // Action: Clear
+  $('clearInput').addEventListener('click', () => {
+    $('inputText').value = '';
+    $('emojiResultSection').style.display = 'none';
+  });
+  $('clearEmoji').addEventListener('click', () => {
+    $('inputEmoji').value = '';
+    $('textResultSection').style.display = 'none';
+  });
+
+  // Copy Helpers
+  async function copyToClipboard(text, successMsg) {
+    if(!text || text==='—') return showToast('Nothing to copy!', '#ef4444');
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(successMsg, '#2563eb');
+    } catch(err) {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast(successMsg, '#2563eb');
+    }
+  }
+
+  $('copyEmoji').addEventListener('click', () => copyToClipboard($('emojiOut').textContent, 'Emoji Copied!'));
+  $('copyText').addEventListener('click', () => copyToClipboard($('textOut').textContent, 'Text Copied!'));
+
+  // Share
+  $('shareEmoji').addEventListener('click', async () => {
+    const em = $('emojiOut').textContent;
+    if(!em || em==='—') return showToast('Nothing to share!', '#ef4444');
+    
+    const shareUrl = location.origin + location.pathname + '?emoji=' + encodeURIComponent(em);
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Emoji Cipher Message', text: 'I sent you a secret emoji message!', url: shareUrl });
+      } catch(err) { console.log(err); }
+    } else {
+      copyToClipboard(shareUrl, 'Share link copied to clipboard!');
+    }
+  });
+</script>
+</body>
+</html>
